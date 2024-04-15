@@ -17,3 +17,11 @@ class Place {
 
   Place(this.id, this.name, this.geoPoint);
 }
+
+class Point {
+  int id = 0;
+  int placeId = 0;
+  GeoPoint geoPoint = GeoPoint(0, 0);
+
+  Point(this.id, this.placeId, this.geoPoint);
+}

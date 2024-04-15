@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'package:fmap_app/funcs.dart';
 import 'package:http/http.dart' as http;
 import 'const.dart';
 
 Future<Map<String, dynamic>> myGet(String path, List<Map<String, String>> query) async {
   final response = await http.get(Uri.parse('$baseUrl$path${query.isNotEmpty ? '?': ''}${query.map((e) => '${e.keys.first}=${e.values.first}').join('&')}'));
   if (response.statusCode == 200) {
+    final res = jsonDecode(response.body);
+    consoleLog('| GET | $path res: $res');
     return jsonDecode(response.body);
   } else {
     throw Exception('Failed to load data! \n${response.statusCode} \n${response.body}');

@@ -7,7 +7,12 @@ const geoRange = (
   rightBottom: (latitude: 39.947740, longitude: 116.417770),
 );
 
-const mapSize = (
+const mapImgSize = (
+  width: 355.0,
+  height: 493.0,
+);
+
+var mapSize = (
   width: 355.0,
   height: 493.0,
 );
