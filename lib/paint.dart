@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'const.dart';
 import 'funcs.dart';
 import 'types.dart';
 
@@ -7,14 +6,21 @@ import 'types.dart';
   
 class MyPainter extends CustomPainter {
   final List<Point> points;
+  final List<GeoPoint> pathPoints;
 
-  MyPainter(this.points);
+  MyPainter(this.points, this.pathPoints);
   @override
   void paint(Canvas canvas, Size size) {
-    final testPosPoints = testGeoPoints.map((e) => geo2Pos(e.longitude, e.latitude)).toList();
-    final placePosPoints = points.map((e) => geo2Pos(e.geoPoint.longitude, e.geoPoint.latitude)).toList();
-    if (testPosPoints.isNotEmpty) {
-      drawLine(canvas, testPosPoints);
+    List<Pos> pathPosPoints = [];
+    if (pathPoints.isNotEmpty) {
+      pathPosPoints = pathPoints.map((e) => geo2Pos(e.longitude, e.latitude)).toList();
+    }
+    List<Pos> placePosPoints = [];
+    if (points.isNotEmpty) {
+      placePosPoints = points.map((e) => geo2Pos(e.geoPoint.longitude, e.geoPoint.latitude)).toList();
+    }
+    if (pathPosPoints.isNotEmpty) {
+      drawLine(canvas, pathPosPoints);
     }
     if (placePosPoints.isNotEmpty) {
       drawMarkers(canvas, placePosPoints);
@@ -23,7 +29,7 @@ class MyPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
+    return oldDelegate != this;
   }
 }
 
@@ -48,26 +54,20 @@ void drawLine(Canvas canvas, List<Pos> places) {
     ..color = Colors.blue[800]!
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
-
-  final outerPath = Path()
-    ..moveTo(places[0].x, places[0].y);
-  for (var i = 1; i < places.length; i++) {
-    outerPath.lineTo(places[i].x, places[i].y);
-  }
-  canvas.drawPath(outerPath, outerPaint);
-
   // 内部线
-  final linePaint = Paint()
+  final innerPaint = Paint()
     ..isAntiAlias = true
     ..style = PaintingStyle.stroke
     ..strokeWidth = 8
     ..color = Colors.blue[400]!
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
-  final path = Path()
-    ..moveTo(places[0].x, places[0].y);
-  for (var i = 1; i < places.length; i++) {
-    path.lineTo(places[i].x, places[i].y);
+
+  final path = Path();
+  for (var i = 0; i < places.length - 1; i++) {
+    path.moveTo(places[i].x, places[i].y);
+    path.lineTo(places[i+1].x, places[i+1].y);
   }
-  canvas.drawPath(path, linePaint);
+  canvas.drawPath(path, outerPaint);
+  canvas.drawPath(path, innerPaint);
 }

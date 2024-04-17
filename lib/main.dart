@@ -1,10 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'pages/map.dart';
 import 'pages/list.dart';
 import 'funcs.dart';
 import 'http.dart';
-import 'const.dart';
 import 'types.dart';
 import 'bar.dart';
 
@@ -12,6 +12,8 @@ enum ShowPointType {
   none,
   places,
   all,
+  tsp,
+  nav,
 }
 
 void main() {
@@ -30,6 +32,7 @@ class _MainAppState extends State<MainApp> {
   List<Point> points = [];
   List<Point> showPoints = [];
   List<GeoPoint> pathPoints = [];
+  NavPlaces navPlaces = NavPlaces.wait();
   bool showBottomBar = true;
   ShowPointType showPointType = ShowPointType.none;
 
@@ -55,31 +58,132 @@ class _MainAppState extends State<MainApp> {
           showPointType = ShowPointType.none;
           toastMsg = '隐藏所有点';
           break;
+        case ShowPointType.tsp:
+          showPointType = ShowPointType.none;
+          toastMsg = '关闭TSP路径';
+          setState(() {
+            pathPoints = [];
+          });
+          break;
+        case ShowPointType.nav:
+          showPointType = ShowPointType.none;
+          toastMsg = '关闭导航';
+          setState(() {
+            pathPoints = [];
+          });
+          break;
       }
       updateShowPoints();
-      Fluttertoast.showToast(
-        msg: toastMsg, 
-        toastLength: Toast.LENGTH_SHORT, 
-        gravity: ToastGravity.CENTER, 
-        timeInSecForIosWeb: 1, 
-        backgroundColor: Colors.blue, 
-        textColor: Colors.white, 
-        fontSize: 16.0
-      );
+      showToast(toastMsg);
     });
   }
 
   void updateShowPoints () {
     List<Point> showPointsTemp = [];
-    if(showPointType == ShowPointType.none) {
-      showPointsTemp = [];
-    } else if (showPointType == ShowPointType.places) {
-      showPointsTemp = places.map((e) => Point(e.id, e.id, e.geoPoint)).toList();
-    } else {
-      showPointsTemp = points;
+    switch(showPointType) {
+      case ShowPointType.none:
+        showPointsTemp = [];
+        break;
+      case ShowPointType.places:
+        showPointsTemp = places.map((e) => Point(e.id, e.id, e.geoPoint)).toList();
+        break;
+      case ShowPointType.all:
+        showPointsTemp = points;
+        break;
+      case ShowPointType.tsp:
+        Place startPlace = navPlaces.from;
+        showPointsTemp = [Point(startPlace.id, startPlace.id, startPlace.geoPoint)];
+        break;
+      case ShowPointType.nav:
+        Place startPlace = navPlaces.from;
+        Place endPlace = navPlaces.to;
+        showPointsTemp = [Point(startPlace.id, startPlace.id, startPlace.geoPoint), Point(endPlace.id, endPlace.id, endPlace.geoPoint)];
+        break;
     }
     setState(() {
       showPoints = showPointsTemp;
+    });
+  }
+
+  void searchTSP() {
+    // 请输入起点名称
+    if (places.isEmpty) {
+      showToast('请先获取景点数据');
+      return;
+    }
+    if (showPointType == ShowPointType.tsp) {
+      switchShowPointType();
+      return ;
+    }
+    if (navPlaces.from.id == -1) {
+      showToast('请选择TSP起点');
+      return;
+    }
+    setState(() {
+      showPointType = ShowPointType.tsp;
+      updateShowPoints();
+    });
+    showToast('搜索TSP路径');
+    final startId = navPlaces.from.id;
+    myGet('/TSP', [{'id': startId.toString()}]).then((res) {
+      final List<GeoPoint> resPathPoints = res['data']['path'].map<GeoPoint>((e) => GeoPoint(e['x'], e['y'])).toList();
+      int i = 2;
+      Timer.periodic(const Duration(milliseconds: 200), (timer) {
+        setState(() {
+          pathPoints = resPathPoints.getRange(0, i).toList();
+        });
+        i++;
+        if (i > resPathPoints.length) {
+          timer.cancel();
+        }
+       });
+    });
+  }
+
+  void navigate() {
+    if (showPointType == ShowPointType.nav || showPointType == ShowPointType.tsp) {
+      switchShowPointType();
+      return ;
+    }
+    if (navPlaces.from.id == -1 || navPlaces.to.id == -1) {
+      showToast('请选择起点和终点');
+      return;
+    }
+    setState(() {
+      showPointType = ShowPointType.nav;
+      updateShowPoints();
+    });
+    myPost('/navigate', [], {
+      'from': {
+        'id': navPlaces.from.id,
+        'x': navPlaces.from.geoPoint.longitude,
+        'y': navPlaces.from.geoPoint.latitude,
+      },
+      'to': {
+        'id': navPlaces.to.id,
+        'x': navPlaces.to.geoPoint.longitude,
+        'y': navPlaces.to.geoPoint.latitude,
+      },
+    }).then((res) {
+      consoleLog('Navigate Res: $res');
+      showToast('开始导航, 路径长度: ${res['data']['distance']}');
+      final List<GeoPoint> resPathPoints = res['data']['path'].map<GeoPoint>((e) => GeoPoint(e['x'], e['y'])).toList();
+      int i = 2;
+      Timer.periodic(const Duration(milliseconds: 200), (timer) {
+        setState(() {
+          pathPoints = resPathPoints.getRange(0, i).toList();
+        });
+        i++;
+        if (i > resPathPoints.length) {
+          timer.cancel();
+        }
+       });
+    });
+  }
+
+  void setNavPlaces(Place from, Place to) {
+    setState(() {
+      navPlaces = NavPlaces(from, to);
     });
   }
 
@@ -114,13 +218,6 @@ class _MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final mapWidth = screenSize.width;
-    final mapHeight = screenSize.width / mapImgSize.width * mapImgSize.height;
-    mapSize = (width: mapWidth, height: mapHeight);
-
-    consoleLog('mapWidth: $mapWidth, mapHeight: $mapHeight');
-    consoleLog('places: $places');
     
     return MaterialApp(
       home: DefaultTabController(
@@ -129,15 +226,15 @@ class _MainAppState extends State<MainApp> {
           appBar: MyAppBar(setShowBottomBar),
           body: TabBarView(
             children: [
-              MapPage(showPoints),
+              MapPage(places, showPoints, pathPoints, navPlaces, setNavPlaces),
               ListPage(places),
             ],
           ),
-          bottomNavigationBar: BottomBar(showBottomBar, switchShowPointType),
+          bottomNavigationBar: BottomBar(showBottomBar, switchShowPointType, searchTSP),
           floatingActionButton: showBottomBar ? FloatingActionButton(
               backgroundColor: Colors.blue,
               shape: const CircleBorder(),
-              onPressed: () {},
+              onPressed: navigate,
               child: const Icon(Icons.navigation_outlined, color: Colors.white,),
           ) : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, //悬浮按钮位置

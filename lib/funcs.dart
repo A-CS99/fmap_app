@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'const.dart';
 import 'types.dart';
 
@@ -14,4 +16,26 @@ void consoleLog(String msg) {
   if (kDebugMode) {
     print(msg);
   }
+}
+
+
+const toastConfig = (
+  toastLength: Toast.LENGTH_SHORT, 
+  gravity: ToastGravity.CENTER, 
+  timeInSecForIosWeb: 1, 
+  backgroundColor: Colors.blue, 
+  textColor: Colors.white, 
+  fontSize: 16.0,
+);
+
+void showToast(String toastMsg) {
+  Fluttertoast.showToast(
+    msg: toastMsg, 
+    toastLength: toastConfig.toastLength,
+    gravity: toastConfig.gravity,
+    timeInSecForIosWeb: toastConfig.timeInSecForIosWeb,
+    backgroundColor: toastConfig.backgroundColor,
+    textColor: toastConfig.textColor,
+    fontSize: toastConfig.fontSize
+  );
 }

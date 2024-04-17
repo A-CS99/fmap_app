@@ -1,21 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:fmap_app/funcs.dart';
+import 'package:fmap_app/http.dart';
 
 import '/types.dart';
 
-class ListPage extends StatelessWidget {
+class ListPage extends StatefulWidget {
   final List<Place> places;
   const ListPage(this.places, {super.key});
 
   @override
+  State<ListPage> createState() => _ListPageState();
+}
+
+class _ListPageState extends State<ListPage> {
+  final dropdownValues = [0, 1, 5, 10];
+  int disRange = 0;
+  bool showDetail = false;
+  Place selectedPlace = Place(0, '', GeoPoint(0, 0));
+  List<Place> listPlaces = [];
+
+  void setSelectedPlace (Place place) {
+    setState(() {
+      selectedPlace = place;
+      showDetail = true;
+    });
+  }
+
+  void backToList() {
+    setState(() {
+      showDetail = false;
+    });
+  }
+
+  void updatePlacesInRange() {
+    myPost('/searchNearByPoint', [], {'centerId': 1, 'range': disRange})
+      .then((res) {
+        List resList = res['data'];
+        resList.sort((a, b) => a['distance'] < b['distance']);
+        consoleLog('resList: $resList');
+        setState(() {
+          listPlaces = resList.map<Place>((e) => Place(e['id'], e['name'], GeoPoint(e['x'], e['y']))).toList();
+        });
+      });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      listPlaces = widget.places;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (showDetail) {
+      return ListDetail(selectedPlace, backToList);
+    }
     return Column(
       children: [
+        DropdownButton(
+          value: disRange, 
+          items: dropdownValues.map<DropdownMenuItem<int>>(
+            (e) => DropdownMenuItem<int>(
+              value: e,
+              child: Text(e == 0 ? '所有范围' : '${e}00m')
+            )).toList(), 
+          onChanged: (int? value) {
+            if (value == null) return;
+            setState(() {
+              disRange = value;
+            });
+            updatePlacesInRange();
+          }
+        ),
         const SizedBox(height: 10),
         Expanded(
           child: ListView.builder(
-            itemCount: places.length,
+            itemCount: listPlaces.length,
             itemBuilder: (context, index) {
-              return ListCard(places[index]);
+              return ListCard(listPlaces[index], setSelectedPlace);
             },
           ),
         ),
@@ -26,15 +90,94 @@ class ListPage extends StatelessWidget {
 
 class ListCard extends StatelessWidget {
   final Place place;
+  final Function setSelectedPlace;
 
-  const ListCard(this.place, {super.key});
+  const ListCard(this.place, this.setSelectedPlace, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text(place.name),
-        subtitle: Text('(${place.geoPoint.longitude}, ${place.geoPoint.latitude})'),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: ElevatedButton(
+        child: ListTile(
+          title: Text(place.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          subtitle: Text('(${place.geoPoint.longitude}, ${place.geoPoint.latitude})'),
+        ),
+        onPressed: () {
+          setSelectedPlace(place);
+        },
+      ),
+    );
+  }
+}
+
+class ListDetail extends StatefulWidget {
+  final Place place;
+  final Function backToList;
+
+  const ListDetail(this.place, this.backToList, {super.key});
+
+  @override
+  State<ListDetail> createState() => _ListDetailState();
+}
+
+class _ListDetailState extends State<ListDetail> {
+  String info = '';
+
+  @override
+  void initState() {
+    super.initState();
+    myGet('/info', [{'placeId': widget.place.id.toString()}])
+      .then((res) {
+        setState(() {
+          info = res['data']['info'];
+        });
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Card(
+        color: Colors.blue[100],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            children: [
+              Text(widget.place.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 32),),
+              Text('(${widget.place.geoPoint.longitude}, ${widget.place.geoPoint.latitude})'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 0, 0),
+                child: Card(
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(info),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        widget.backToList();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[50],
+                        foregroundColor: Colors.blue[900],
+                      ),
+                      child: const Text('返回列表'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

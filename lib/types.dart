@@ -25,3 +25,15 @@ class Point {
 
   Point(this.id, this.placeId, this.geoPoint);
 }
+
+class NavPlaces {
+  Place from = Place(-1, '', GeoPoint(0, 0));
+  Place to = Place(-1, '', GeoPoint(0, 0));
+
+  NavPlaces.wait() {
+    from = Place(-1, '', GeoPoint(0, 0));
+    to = Place(-1, '', GeoPoint(0, 0));
+  }
+
+  NavPlaces(this.from, this.to);
+}

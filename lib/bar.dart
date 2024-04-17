@@ -5,7 +5,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MyAppBar(this.setShowBottomBar, {super.key});
 
   @override
-  Size get preferredSize => const Size.fromHeight(100);
+  Size get preferredSize => const Size.fromHeight(80);
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,8 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
 class BottomBar extends StatelessWidget {
   final bool showBottomBar;
   final Function switchShowPointType;
-  const BottomBar(this.showBottomBar, this.switchShowPointType, {super.key});
+  final Function searchTSP;
+  const BottomBar(this.showBottomBar, this.switchShowPointType, this.searchTSP, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +46,7 @@ class BottomBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: const Icon(Icons.route_outlined), onPressed: () {  },),
+          IconButton(icon: const Icon(Icons.route_outlined), onPressed: () { searchTSP(); },),
           const SizedBox(),
           IconButton(icon: const Icon(Icons.place), onPressed: () { switchShowPointType(); },),
         ],
