@@ -13,7 +13,9 @@ class ListPage extends StatefulWidget {
 }
 
 class _ListPageState extends State<ListPage> {
-  final dropdownValues = [0, 1, 5, 10];
+  final dropdownValues = [0, 100, 500, 1000];
+  final Map<int, String> dropdownValueMap = {0: '所有范围', 100: '100m', 500: '500m', 1000: '1km'};
+  Place dropdownPlace = Place(-1, '', GeoPoint(0, 0));
   int disRange = 0;
   bool showDetail = false;
   Place selectedPlace = Place(0, '', GeoPoint(0, 0));
@@ -33,10 +35,16 @@ class _ListPageState extends State<ListPage> {
   }
 
   void updatePlacesInRange() {
-    myPost('/searchNearByPoint', [], {'centerId': 1, 'range': disRange})
+    if (dropdownPlace.id == -1) {
+      setState(() {
+        listPlaces = widget.places;
+      });
+      return;
+    }
+    myPost('/searchNearByPoint', [], {'centerId': dropdownPlace.id, 'range': disRange / 1000.0})
       .then((res) {
         List resList = res['data'];
-        resList.sort((a, b) => a['distance'] < b['distance']);
+        resList.sort((a, b) => (a['distance'] as double).compareTo(b['distance']));
         consoleLog('resList: $resList');
         setState(() {
           listPlaces = resList.map<Place>((e) => Place(e['id'], e['name'], GeoPoint(e['x'], e['y']))).toList();
@@ -48,6 +56,7 @@ class _ListPageState extends State<ListPage> {
   void initState() {
     super.initState();
     setState(() {
+
       listPlaces = widget.places;
     });
   }
@@ -57,22 +66,54 @@ class _ListPageState extends State<ListPage> {
     if (showDetail) {
       return ListDetail(selectedPlace, backToList);
     }
+    final dropdownPlacesItems = widget.places.map<DropdownMenuItem<int>>(
+      (e) => DropdownMenuItem<int>(
+        value: e.id, 
+        child: Text(e.name)
+      )
+    ).toList();
     return Column(
       children: [
-        DropdownButton(
-          value: disRange, 
-          items: dropdownValues.map<DropdownMenuItem<int>>(
-            (e) => DropdownMenuItem<int>(
-              value: e,
-              child: Text(e == 0 ? '所有范围' : '${e}00m')
-            )).toList(), 
-          onChanged: (int? value) {
-            if (value == null) return;
-            setState(() {
-              disRange = value;
-            });
-            updatePlacesInRange();
-          }
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            DropdownButton(
+              value: dropdownPlace.id, 
+              items: [const DropdownMenuItem<int>(
+                value: -1,
+                child: Text('请选择所在地')
+              )] + dropdownPlacesItems,
+              onChanged: (int? id) {
+                if (id == null || id == -1) {
+                  setState(() {
+                    dropdownPlace = Place(-1, '请选择所在地', GeoPoint(0, 0));
+                  });
+                  updatePlacesInRange();
+                  return;
+                }
+                final Place place = widget.places.firstWhere((e) => e.id == id);
+                setState(() {
+                  dropdownPlace = place;
+                  updatePlacesInRange();
+                });
+              }
+            ),
+            DropdownButton(
+              value: disRange, 
+              items: dropdownValues.map<DropdownMenuItem<int>>(
+                (e) => DropdownMenuItem<int>(
+                  value: e,
+                  child: Text(dropdownValueMap[e]!)
+                )).toList(), 
+              onChanged: (int? value) {
+                if (value == null) return;
+                setState(() {
+                  disRange = value;
+                });
+                updatePlacesInRange();
+              }
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         Expanded(
