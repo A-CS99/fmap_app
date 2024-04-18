@@ -44,12 +44,23 @@ class BottomBar extends StatelessWidget {
       height: 70,
       color: Colors.white,
       shape: const CircularNotchedRectangle(),
+      padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: const Icon(Icons.route_outlined, size: 32,), onPressed: () { searchTSP(); },),
+          Column(
+            children: [
+              IconButton(icon: const Icon(Icons.route_outlined, size: 32,), onPressed: () { searchTSP(); },),
+              const Text('TSP', style: TextStyle(fontSize: 14),),
+            ],
+          ),
           const SizedBox(),
-          IconButton(icon: const Icon(Icons.place, size: 32,), onPressed: () { switchShowPointType(); },),
+          Column(
+            children: [
+              IconButton(icon: const Icon(Icons.place, size: 32,), onPressed: () { switchShowPointType(); },),
+              const Text('点位', style: TextStyle(fontSize: 14),),
+            ],
+          ),
         ],
       ),
     );
