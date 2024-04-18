@@ -121,7 +121,9 @@ class _MainAppState extends State<MainApp> {
     }
     setState(() {
       showPointType = ShowPointType.tsp;
-      updateShowPoints();
+      setState(() {
+        showPoints = places.map((e) => Point(e.id, e.id, e.geoPoint)).toList();
+      });
     });
     showToast('搜索TSP路径');
     final startId = navPlaces.from.id;
@@ -135,6 +137,7 @@ class _MainAppState extends State<MainApp> {
         i++;
         if (i > resPathPoints.length) {
           timer.cancel();
+          showToast('TSP路径搜索成功, 路径长度: ${res['data']['distance']*1000}m');
         }
        });
     });
@@ -156,17 +159,18 @@ class _MainAppState extends State<MainApp> {
     myPost('/navigate', [], {
       'from': {
         'id': navPlaces.from.id,
+        'name': navPlaces.from.name,
         'x': navPlaces.from.geoPoint.longitude,
         'y': navPlaces.from.geoPoint.latitude,
       },
       'to': {
         'id': navPlaces.to.id,
+        'name': navPlaces.to.name,
         'x': navPlaces.to.geoPoint.longitude,
         'y': navPlaces.to.geoPoint.latitude,
       },
     }).then((res) {
-      consoleLog('Navigate Res: $res');
-      showToast('开始导航, 路径长度: ${res['data']['distance']}');
+      showToast('开始导航, 路径长度: ${res['data']['distance']*1000}m');
       final List<GeoPoint> resPathPoints = res['data']['path'].map<GeoPoint>((e) => GeoPoint(e['x'], e['y'])).toList();
       int i = 2;
       Timer.periodic(const Duration(milliseconds: 200), (timer) {
@@ -201,7 +205,9 @@ class _MainAppState extends State<MainApp> {
               places = resPlaces;
             });
         }
-      );
+      ).catchError((e) {
+        consoleLog('error: $e');
+      });
       myGet('/allPoints', []).then((res) {
           final List<Point> resPoints = res['data'].map<Point>((e) => 
             Point(e['id'], e['placeId'], GeoPoint(e['x'], e['y']))
@@ -210,7 +216,9 @@ class _MainAppState extends State<MainApp> {
             points = resPoints;
           });
         }
-      );
+      ).catchError((e) {
+        consoleLog('error: $e');
+      });
     } catch (e) {
       consoleLog('error: $e');
     }
@@ -235,7 +243,7 @@ class _MainAppState extends State<MainApp> {
               backgroundColor: Colors.blue,
               shape: const CircleBorder(),
               onPressed: navigate,
-              child: const Icon(Icons.navigation_outlined, color: Colors.white,),
+              child: const Icon(Icons.navigation_outlined, color: Colors.white, size: 32,),
           ) : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, //悬浮按钮位置
         ),

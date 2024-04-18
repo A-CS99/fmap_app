@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '/funcs.dart';
 import '/const.dart';
 import '/paint.dart';
 import '/types.dart';

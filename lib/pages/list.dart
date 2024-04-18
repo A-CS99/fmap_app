@@ -13,8 +13,8 @@ class ListPage extends StatefulWidget {
 }
 
 class _ListPageState extends State<ListPage> {
-  final dropdownValues = [0, 100, 500, 1000];
-  final Map<int, String> dropdownValueMap = {0: '所有范围', 100: '100m', 500: '500m', 1000: '1km'};
+  final dropdownValues = [0, 30, 50, 80, 120, 150];
+  final Map<int, String> dropdownValueMap = {0: '所有范围', 30: '30m', 50: '50m', 80: '80m', 120: '120m', 150: '150m'}; 
   Place dropdownPlace = Place(-1, '', GeoPoint(0, 0));
   int disRange = 0;
   bool showDetail = false;
@@ -35,7 +35,7 @@ class _ListPageState extends State<ListPage> {
   }
 
   void updatePlacesInRange() {
-    if (dropdownPlace.id == -1) {
+    if (dropdownPlace.id == -1 || disRange == 0) {
       setState(() {
         listPlaces = widget.places;
       });
@@ -56,7 +56,6 @@ class _ListPageState extends State<ListPage> {
   void initState() {
     super.initState();
     setState(() {
-
       listPlaces = widget.places;
     });
   }
@@ -72,59 +71,62 @@ class _ListPageState extends State<ListPage> {
         child: Text(e.name)
       )
     ).toList();
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            DropdownButton(
-              value: dropdownPlace.id, 
-              items: [const DropdownMenuItem<int>(
-                value: -1,
-                child: Text('请选择所在地')
-              )] + dropdownPlacesItems,
-              onChanged: (int? id) {
-                if (id == null || id == -1) {
+    return Container(
+      color: Colors.grey[200],
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              DropdownButton(
+                value: dropdownPlace.id, 
+                items: [const DropdownMenuItem<int>(
+                  value: -1,
+                  child: Text('请选择所在地')
+                )] + dropdownPlacesItems,
+                onChanged: (int? id) {
+                  if (id == null || id == -1) {
+                    setState(() {
+                      dropdownPlace = Place(-1, '请选择所在地', GeoPoint(0, 0));
+                    });
+                    updatePlacesInRange();
+                    return;
+                  }
+                  final Place place = widget.places.firstWhere((e) => e.id == id);
                   setState(() {
-                    dropdownPlace = Place(-1, '请选择所在地', GeoPoint(0, 0));
+                    dropdownPlace = place;
+                    updatePlacesInRange();
+                  });
+                }
+              ),
+              DropdownButton(
+                value: disRange, 
+                items: dropdownValues.map<DropdownMenuItem<int>>(
+                  (e) => DropdownMenuItem<int>(
+                    value: e,
+                    child: Text(dropdownValueMap[e]!)
+                  )).toList(), 
+                onChanged: (int? value) {
+                  if (value == null) return;
+                  setState(() {
+                    disRange = value;
                   });
                   updatePlacesInRange();
-                  return;
                 }
-                final Place place = widget.places.firstWhere((e) => e.id == id);
-                setState(() {
-                  dropdownPlace = place;
-                  updatePlacesInRange();
-                });
-              }
-            ),
-            DropdownButton(
-              value: disRange, 
-              items: dropdownValues.map<DropdownMenuItem<int>>(
-                (e) => DropdownMenuItem<int>(
-                  value: e,
-                  child: Text(dropdownValueMap[e]!)
-                )).toList(), 
-              onChanged: (int? value) {
-                if (value == null) return;
-                setState(() {
-                  disRange = value;
-                });
-                updatePlacesInRange();
-              }
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          child: ListView.builder(
-            itemCount: listPlaces.length,
-            itemBuilder: (context, index) {
-              return ListCard(listPlaces[index], setSelectedPlace);
-            },
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.builder(
+              itemCount: listPlaces.length,
+              itemBuilder: (context, index) {
+                return ListCard(listPlaces[index], setSelectedPlace);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -140,6 +142,12 @@ class ListCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)
+          ),
+        ),
         child: ListTile(
           title: Text(place.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           subtitle: Text('(${place.geoPoint.longitude}, ${place.geoPoint.latitude})'),

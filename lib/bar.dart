@@ -17,8 +17,8 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
           setShowBottomBar(index == 0);
         },
         indicatorColor: Colors.white,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white,
+        labelStyle: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+        unselectedLabelStyle: const TextStyle(color: Colors.white, fontSize: 16),
         overlayColor: MaterialStateProperty.all(Colors.pink),
         tabs: const [
           Tab(text: '地图',),
@@ -41,14 +41,15 @@ class BottomBar extends StatelessWidget {
       return const SizedBox();
     }
     return BottomAppBar(
+      height: 70,
       color: Colors.white,
       shape: const CircularNotchedRectangle(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: const Icon(Icons.route_outlined), onPressed: () { searchTSP(); },),
+          IconButton(icon: const Icon(Icons.route_outlined, size: 32,), onPressed: () { searchTSP(); },),
           const SizedBox(),
-          IconButton(icon: const Icon(Icons.place), onPressed: () { switchShowPointType(); },),
+          IconButton(icon: const Icon(Icons.place, size: 32,), onPressed: () { switchShowPointType(); },),
         ],
       ),
     );
